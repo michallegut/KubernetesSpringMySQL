@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: PersistentVolume            
+metadata:
+  name: mysql-pv
+  labels:
+    app: twwo
+spec:
+  storageClassName: standard      
+  capacity:
+    storage: 250Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:                       
+    path: "/mnt/data"
+  persistentVolumeReclaimPolicy: Retain  
+---    
+apiVersion: v1
+kind: PersistentVolumeClaim        
+metadata:                          
+  name: mysql-pv-claim
+  labels:
+    app: twwo
+spec:                              
+  storageClassName: standard       
+  accessModes:
+    - ReadWriteOnce                
+  resources:
+    requests:
+      storage: 250Mi
+---
+apiVersion: v1                    
+kind: Service                     
+metadata:
+  name: mysql         
+  labels:                         
+    app: twwo
+spec:
+  ports:
+    - port: 3306
+  selector:                       
+    app: twwo
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment                    
+metadata:
+  name: mysql           
+  labels:                           
+    app: twwo
+spec:
+  selector:
+    matchLabels:                    
+      app: twwo
+  strategy:
+    type: Recreate
+  template:                         
+    metadata:
+      labels:                       
+        app: twwo
+    spec:                           
+      containers:
+      - image: mysql:5              
+        name: mysql
+        env:
+        - name: MYSQL_DATABASE
+          value: notes_app
+        - name: MYSQL_ROOT_PASSWORD
+          value: callicoder
+        ports:
+        - containerPort: 3306        
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage  
+          mountPath: /var/lib/mysql
+      volumes:                       
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
